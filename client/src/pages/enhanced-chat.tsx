@@ -83,7 +83,10 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
   // Update message mutation
   const updateMessageMutation = useMutation({
     mutationFn: async ({ id, content }: { id: number; content: string }) => {
-      const response = await apiRequest("PATCH", `/api/messages/${id}`, { content });
+      const response = await apiRequest("PATCH", `/api/messages/${id}`, { 
+        content,
+        userId: currentUser.id,
+      });
       return response.json();
     },
     onSuccess: () => {
@@ -107,7 +110,9 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
   // Delete message mutation
   const deleteMessageMutation = useMutation({
     mutationFn: async (id: number) => {
-      const response = await apiRequest("DELETE", `/api/messages/${id}`);
+      const response = await apiRequest("DELETE", `/api/messages/${id}`, {
+        userId: currentUser.id,
+      });
       return response.json();
     },
     onSuccess: () => {
