@@ -10,38 +10,38 @@ interface GifPickerProps {
   onGifSelect: (gifUrl: string, gifName: string) => void;
 }
 
-// Popular/trending GIFs for demo (since we don't have API key)
+// Popular/trending GIFs for demo (using working URLs)
 const popularGifs = [
   {
-    url: "https://media.tenor.com/rePDfDWO3XoAAAAj/haha-laughing.gif",
+    url: "https://media.giphy.com/media/3o7btPCcdNniyf0ArS/giphy.gif",
     name: "Laughing"
   },
   {
-    url: "https://media.tenor.com/Z9kHBL2hXYcAAAAj/happy-excited.gif", 
+    url: "https://media.giphy.com/media/l3q2XhfQ8oCkm1Ts4/giphy.gif", 
     name: "Happy"
   },
   {
-    url: "https://media.tenor.com/X_3HvnreJjUAAAAj/clap-good-job.gif",
+    url: "https://media.giphy.com/media/7rj2ZgttvgomY/giphy.gif",
     name: "Clapping"
   },
   {
-    url: "https://media.tenor.com/wbKQtCg-zKcAAAAj/love-heart.gif",
+    url: "https://media.giphy.com/media/3o6Zt3AC93PIPAdQ9a/giphy.gif",
     name: "Love"
   },
   {
-    url: "https://media.tenor.com/3_7RzK3bJqQAAAAj/dance-party.gif",
+    url: "https://media.giphy.com/media/l0HlKrB02QY0f1mbm/giphy.gif",
     name: "Dancing"
   },
   {
-    url: "https://media.tenor.com/UUQXC1wJ6FIAAAAJ/ok-thumbs-up.gif",
+    url: "https://media.giphy.com/media/XreQmk7ETCak0/giphy.gif",
     name: "OK"
   },
   {
-    url: "https://media.tenor.com/3Di1ux8ZENQAAAAJ/no-nope.gif",
+    url: "https://media.giphy.com/media/3og0INyCmHlNylks9O/giphy.gif",
     name: "No"
   },
   {
-    url: "https://media.tenor.com/QyoGNUn5KRwAAAAj/surprised-shock.gif",
+    url: "https://media.giphy.com/media/5VKbvrjxpVJCM/giphy.gif",
     name: "Surprised"
   }
 ];

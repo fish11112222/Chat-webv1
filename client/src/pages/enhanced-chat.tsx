@@ -45,10 +45,11 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
   });
 
   // Get online users count
-  const { data: usersCount = 0 } = useQuery<number>({
+  const { data: usersData } = useQuery<{count: number}>({
     queryKey: ["/api/users/count"],
     refetchInterval: 10000,
   });
+  const usersCount = usersData?.count || 0;
 
   // Create message mutation
   const createMessageMutation = useMutation({

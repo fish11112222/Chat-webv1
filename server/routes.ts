@@ -151,7 +151,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/users/count", async (req, res) => {
     try {
       const count = await storage.getUsersCount();
-      res.json(count);
+      res.json({ count });
     } catch (error) {
       console.error("Error fetching users count:", error);
       res.status(500).json({ message: "Failed to fetch users count" });
