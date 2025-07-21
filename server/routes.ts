@@ -56,6 +56,28 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get users count (must be before the parameterized route)
+  app.get("/api/users/count", async (req, res) => {
+    try {
+      const count = await storage.getUsersCount();
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching users count:", error);
+      res.status(500).json({ message: "Failed to fetch users count" });
+    }
+  });
+
+  // Get online users list (must be before the parameterized route)
+  app.get("/api/users/online", async (req, res) => {
+    try {
+      const users = await storage.getOnlineUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching online users:", error);
+      res.status(500).json({ message: "Failed to fetch online users" });
+    }
+  });
+
   // Get user by ID
   app.get("/api/users/:id", async (req, res) => {
     try {
@@ -147,27 +169,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Get users count
-  app.get("/api/users/count", async (req, res) => {
-    try {
-      const count = await storage.getUsersCount();
-      res.json({ count });
-    } catch (error) {
-      console.error("Error fetching users count:", error);
-      res.status(500).json({ message: "Failed to fetch users count" });
-    }
-  });
-
-  // Get online users list
-  app.get("/api/users/online", async (req, res) => {
-    try {
-      const users = await storage.getOnlineUsers();
-      res.json(users);
-    } catch (error) {
-      console.error("Error fetching online users:", error);
-      res.status(500).json({ message: "Failed to fetch online users" });
-    }
-  });
+  
 
   // Update user activity (heartbeat)
   app.post("/api/users/:id/activity", async (req, res) => {
