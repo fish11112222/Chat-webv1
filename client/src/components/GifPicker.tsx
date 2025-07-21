@@ -62,7 +62,7 @@ export default function GifPicker({ onGifSelect }: GifPickerProps) {
           <span className="ml-1 text-xs">GIF</span>
         </Button>
       </PopoverTrigger>
-      <PopoverContent className="w-80 p-4">
+      <PopoverContent className="w-80 sm:w-96 p-4">
         <div className="space-y-4">
           <div className="relative">
             <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
@@ -74,29 +74,34 @@ export default function GifPicker({ onGifSelect }: GifPickerProps) {
             />
           </div>
           
-          <div className="grid grid-cols-2 gap-2 max-h-64 overflow-y-auto">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 max-h-72 overflow-y-auto scroll-smooth">
             {filteredGifs.map((gif, index) => (
               <div
                 key={index}
-                className="cursor-pointer rounded overflow-hidden hover:opacity-80 transition-opacity"
+                className="cursor-pointer rounded-lg overflow-hidden hover:scale-105 hover:shadow-md transition-all duration-200 bg-white border"
                 onClick={() => onGifSelect(gif.url, gif.name)}
               >
-                <img
-                  src={gif.url}
-                  alt={gif.name}
-                  className="w-full h-24 object-cover"
-                  loading="lazy"
-                />
-                <div className="p-1 bg-gray-100 text-xs text-center">
-                  {gif.name}
+                <div className="aspect-square">
+                  <img
+                    src={gif.url}
+                    alt={gif.name}
+                    className="w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                <div className="p-2 bg-gradient-to-t from-gray-50 to-transparent">
+                  <div className="text-xs font-medium text-center text-gray-700 truncate">
+                    {gif.name}
+                  </div>
                 </div>
               </div>
             ))}
           </div>
           
           {filteredGifs.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              No GIFs found
+            <div className="text-center py-12 text-gray-500">
+              <div className="text-2xl mb-2">🔍</div>
+              <div className="text-sm">No GIFs found</div>
             </div>
           )}
         </div>

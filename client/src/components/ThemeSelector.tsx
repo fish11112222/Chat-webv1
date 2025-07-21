@@ -139,9 +139,9 @@ export default function ThemeSelector({ currentTheme, onThemeChange }: ThemeSele
   return (
     <Popover>
       <PopoverTrigger asChild>
-        <Button variant="outline" size="sm" className="h-9 px-3">
-          <Palette className="w-4 h-4" />
-          <span className="ml-1 text-xs">Theme</span>
+        <Button variant="outline" size="sm" className="h-8 sm:h-9 px-2 sm:px-3">
+          <Palette className="w-3 h-3 sm:w-4 sm:h-4" />
+          <span className="ml-1 text-xs hidden sm:inline">Theme</span>
         </Button>
       </PopoverTrigger>
       <PopoverContent className="w-80 p-4">

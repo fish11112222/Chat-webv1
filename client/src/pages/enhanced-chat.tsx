@@ -288,9 +288,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2 min-w-0">
-              <div className="hidden sm:block">
-                <ThemeSelector currentTheme={currentTheme} />
-              </div>
+              <ThemeSelector currentTheme={currentTheme} />
 
               <div className="flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-1 rounded-full bg-gray-100 min-w-0 max-w-32 sm:max-w-none">
                 <Avatar className="w-6 h-6 sm:w-7 sm:h-7 flex-shrink-0">
@@ -310,8 +308,8 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
             </div>
           </div>
           
-          {/* Mobile online count */}
-          <div className="sm:hidden mt-2">
+          {/* Mobile online count and theme */}
+          <div className="sm:hidden mt-2 flex items-center justify-between">
             <Badge variant="secondary" className="flex items-center gap-1 w-fit">
               <Users className="w-3 h-3" />
               {usersCount} online
