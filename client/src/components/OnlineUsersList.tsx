@@ -17,8 +17,10 @@ interface OnlineUser {
   firstName: string;
   lastName: string;
   email: string;
-  isOnline: boolean;
-  lastActivity: string;
+  avatar: string | null;
+  isOnline?: boolean;
+  lastActivity?: string;
+  createdAt: Date | string;
 }
 
 interface OnlineUsersListProps {
@@ -34,14 +36,17 @@ export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
     enabled: isOpen, // Only fetch when popover is open
   });
 
-  const onlineUsers = users.filter(user => user.isOnline);
-  const offlineUsers = users.filter(user => !user.isOnline);
+  // Assume users are online if isOnline is undefined or true
+  const onlineUsers = users.filter(user => user.isOnline !== false);
+  const offlineUsers = users.filter(user => user.isOnline === false);
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
   };
 
-  const getLastSeenText = (lastActivity: string) => {
+  const getLastSeenText = (lastActivity?: string) => {
+    if (!lastActivity) return "Just now";
+    
     const now = new Date();
     const lastSeen = new Date(lastActivity);
     const diffInMinutes = Math.floor((now.getTime() - lastSeen.getTime()) / (1000 * 60));

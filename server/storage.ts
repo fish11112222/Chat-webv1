@@ -240,14 +240,17 @@ export class MemStorage implements IStorage {
   }
 
   async getUsersCount(): Promise<number> {
-    return this.users.size;
+    // Count both registered users and users with activity tracking
+    const registeredUsers = this.users.size;
+    const activeUsers = this.userActivity.size;
+    return Math.max(registeredUsers, activeUsers);
   }
 
   async getOnlineUsers(): Promise<User[]> {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const onlineUsers: User[] = [];
 
-    // Check all users for recent activity
+    // Check registered users for recent activity
     for (const [userId, user] of this.users.entries()) {
       const lastActive = this.userActivity.get(userId);
       
@@ -255,6 +258,25 @@ export class MemStorage implements IStorage {
       if (!lastActive || lastActive > fiveMinutesAgo) {
         const { password, ...userWithoutPassword } = user;
         onlineUsers.push(userWithoutPassword as User);
+      }
+    }
+
+    // Check for users with activity tracking but not registered (mock users)
+    for (const [userId, lastActive] of this.userActivity.entries()) {
+      if (lastActive > fiveMinutesAgo && !this.users.has(userId)) {
+        // Create mock user for activity tracking
+        const mockUser = {
+          id: userId,
+          username: `Guest${userId}`,
+          firstName: "Guest",
+          lastName: `User`,
+          email: `guest${userId}@example.com`,
+          avatar: null,
+          isOnline: true,
+          lastActivity: lastActive.toISOString(),
+          createdAt: lastActive
+        };
+        onlineUsers.push(mockUser);
       }
     }
 
