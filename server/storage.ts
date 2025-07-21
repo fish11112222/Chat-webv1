@@ -240,10 +240,18 @@ export class MemStorage implements IStorage {
   }
 
   async getUsersCount(): Promise<number> {
-    // Count both registered users and users with activity tracking
-    const registeredUsers = this.users.size;
-    const activeUsers = this.userActivity.size;
-    return Math.max(registeredUsers, activeUsers);
+    // Count only registered users who are active
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    let activeRegisteredUsers = 0;
+
+    for (const [userId, user] of this.users.entries()) {
+      const lastActive = this.userActivity.get(userId);
+      if (!lastActive || lastActive > fiveMinutesAgo) {
+        activeRegisteredUsers++;
+      }
+    }
+
+    return activeRegisteredUsers;
   }
 
   async getOnlineUsers(): Promise<User[]> {
@@ -261,24 +269,8 @@ export class MemStorage implements IStorage {
       }
     }
 
-    // Check for users with activity tracking but not registered (mock users)
-    for (const [userId, lastActive] of this.userActivity.entries()) {
-      if (lastActive > fiveMinutesAgo && !this.users.has(userId)) {
-        // Create mock user for activity tracking
-        const mockUser = {
-          id: userId,
-          username: `Guest${userId}`,
-          firstName: "Guest",
-          lastName: `User`,
-          email: `guest${userId}@example.com`,
-          avatar: null,
-          isOnline: true,
-          lastActivity: lastActive.toISOString(),
-          createdAt: lastActive
-        };
-        onlineUsers.push(mockUser);
-      }
-    }
+    // Only show activity for users who have activity tracking AND are registered users
+    // Remove mock guest users - only show real registered users
 
     return onlineUsers;
   }
