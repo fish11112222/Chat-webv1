@@ -153,9 +153,21 @@ export class MemStorage implements IStorage {
 
   async authenticateUser(credentials: SignInData): Promise<User | null> {
     const user = await this.getUserByEmail(credentials.email);
-    if (!user || user.password !== credentials.password) {
+    if (!user) {
+      console.log("User not found:", credentials.email);
       return null;
     }
+    
+    // For development, we're using plain text password comparison
+    // In production, you should use proper password hashing
+    if (user.password !== credentials.password) {
+      console.log("Password mismatch for user:", credentials.email);
+      console.log("Stored password:", user.password);
+      console.log("Provided password:", credentials.password);
+      return null;
+    }
+    
+    console.log("Authentication successful for user:", user.email);
     return user;
   }
 
