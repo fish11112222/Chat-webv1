@@ -315,6 +315,19 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                 <CardTitle className="text-lg sm:text-xl">Chat Room</CardTitle>
               </div>
 
+              {/* User Display */}
+              <div className="flex items-center gap-2 bg-gray-100 dark:bg-gray-800 rounded-full px-3 py-1">
+                <div 
+                  className="w-6 h-6 rounded-full flex items-center justify-center text-white text-xs font-bold"
+                  style={{ backgroundColor: currentTheme?.primaryColor || '#3b82f6' }}
+                >
+                  {currentUser.firstName[0]}{currentUser.lastName[0]}
+                </div>
+                <span className="text-sm font-medium hidden sm:inline">
+                  {currentUser.firstName} {currentUser.lastName}
+                </span>
+              </div>
+
               <div className="hidden sm:block">
                 <OnlineUsersList usersCount={usersCount} />
               </div>

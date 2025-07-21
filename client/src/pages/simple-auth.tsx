@@ -32,7 +32,7 @@ export default function SimpleAuthPage({ onAuthSuccess }: AuthPageProps) {
       return response.json();
     },
     onSuccess: (user: User) => {
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("chatUser", JSON.stringify(user));
       toast({
         title: "Account created!",
         description: "Welcome to the chat room!",
@@ -54,7 +54,7 @@ export default function SimpleAuthPage({ onAuthSuccess }: AuthPageProps) {
       return response.json();
     },
     onSuccess: (user: User) => {
-      localStorage.setItem("user", JSON.stringify(user));
+      localStorage.setItem("chatUser", JSON.stringify(user));
       toast({
         title: "Welcome back!",
         description: `Hello, ${user.firstName}!`,
@@ -95,19 +95,6 @@ export default function SimpleAuthPage({ onAuthSuccess }: AuthPageProps) {
   };
 
   const isLoading = signUpMutation.isPending || signInMutation.isPending;
-
-    useEffect(() => {
-        const storedUser = localStorage.getItem("user");
-        if (storedUser) {
-            try {
-                const user = JSON.parse(storedUser) as User;
-                onAuthSuccess(user);
-            } catch (error) {
-                console.error("Error parsing user from localStorage:", error);
-                localStorage.removeItem("user");
-            }
-        }
-    }, [onAuthSuccess]);
 
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4">
