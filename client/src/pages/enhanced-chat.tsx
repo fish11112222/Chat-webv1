@@ -264,7 +264,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                 </div>
                 <CardTitle className="text-xl">Chat Room</CardTitle>
               </div>
-              
+
               <Badge variant="secondary" className="flex items-center gap-1">
                 <Users className="w-3 h-3" />
                 {usersCount} online
@@ -273,7 +273,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
 
             <div className="flex items-center gap-2">
               <ThemeSelector currentTheme={currentTheme} />
-              
+
               <div className="flex items-center gap-2 px-3 py-1 rounded-full bg-gray-100">
                 <Avatar className="w-7 h-7">
                   <AvatarFallback className="text-xs">
@@ -330,7 +330,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                               </span>
                             </div>
                           )}
-                          
+
                           <div
                             className={`relative p-3 rounded-2xl shadow-sm ${
                               isOwnMessage ? "text-white" : ""
@@ -386,7 +386,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                                     )}
                                   </div>
                                 )}
-                                
+
                                 <div className="text-sm leading-relaxed">
                                   {msg.content}
                                 </div>
@@ -418,6 +418,34 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
 
                           <div className={`mt-1 text-xs text-gray-500 ${isOwnMessage ? "text-right" : ""}`}>
                             {formatDistance(new Date(msg.createdAt), new Date(), { addSuffix: true })}
+                             <span className="text-xs text-muted-foreground">
+                                  {format(new Date(msg.createdAt), "h:mm a")}
+                                  {msg.updatedAt && " (edited)"}
+                                </span>
+
+                                {/* Message actions below timestamp */}
+                                {isOwnMessage && editingId !== msg.id && (
+                                  <div className="flex gap-2 mt-1">
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs bg-gray-100 hover:bg-gray-200 text-gray-600 hover:text-gray-800"
+                                      onClick={() => startEdit(msg.id, msg.content)}
+                                    >
+                                      <Edit className="w-3 h-3 mr-1" />
+                                      แก้ไข
+                                    </Button>
+                                    <Button
+                                      size="sm"
+                                      variant="ghost"
+                                      className="h-7 px-2 text-xs bg-red-100 hover:bg-red-200 text-red-600 hover:text-red-800"
+                                      onClick={() => deleteMessage(msg.id)}
+                                    >
+                                      <Trash2 className="w-3 h-3 mr-1" />
+                                      ลบ
+                                    </Button>
+                                  </div>
+                                )}
                           </div>
                         </div>
                       </div>
@@ -445,7 +473,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                       </Badge>
                     </div>
                   )}
-                  
+
                   {selectedGif && (
                     <div className="flex items-center gap-2">
                       <img src={selectedGif.url} alt={selectedGif.name} className="w-12 h-8 object-cover rounded" />
@@ -453,7 +481,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                       <Badge variant="secondary" className="text-xs">GIF</Badge>
                     </div>
                   )}
-                  
+
                   <Button size="sm" variant="ghost" onClick={clearAttachments}>
                     <Trash2 className="w-3 h-3" />
                   </Button>
@@ -470,7 +498,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                     <GifPicker onGifSelect={handleGifSelect} />
                     <FileUploader onFileSelect={handleFileSelect} />
                   </div>
-                  
+
                   <div className="flex gap-2">
                     <Input
                       value={message}
