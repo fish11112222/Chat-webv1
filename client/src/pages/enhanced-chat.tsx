@@ -13,6 +13,7 @@ import EmojiPicker from "@/components/EmojiPicker";
 import GifPicker from "@/components/GifPicker";
 import FileUploader from "@/components/FileUploader";
 import ThemeSelector from "@/components/ThemeSelector";
+import OnlineUsersList from "@/components/OnlineUsersList";
 import { Send, Edit, Trash2, LogOut, Users, Settings } from "lucide-react";
 import { format, formatDistance } from "date-fns";
 import type { Message, User, ChatTheme } from "@shared/schema";
@@ -154,6 +155,39 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
     scrollToBottom();
   }, [messages]);
 
+  // User activity heartbeat - update every 30 seconds
+  useEffect(() => {
+    const updateActivity = async () => {
+      try {
+        await apiRequest("POST", `/api/users/${currentUser.id}/activity`, {});
+      } catch (error) {
+        console.error("Failed to update activity:", error);
+      }
+    };
+
+    // Update immediately when component mounts
+    updateActivity();
+
+    // Then update every 30 seconds
+    const interval = setInterval(updateActivity, 30000);
+
+    // Update on user interaction
+    const handleUserActivity = () => {
+      updateActivity();
+    };
+
+    window.addEventListener('click', handleUserActivity);
+    window.addEventListener('keypress', handleUserActivity);
+    window.addEventListener('scroll', handleUserActivity);
+
+    return () => {
+      clearInterval(interval);
+      window.removeEventListener('click', handleUserActivity);
+      window.removeEventListener('keypress', handleUserActivity);
+      window.removeEventListener('scroll', handleUserActivity);
+    };
+  }, [currentUser.id]);
+
   // Apply theme when it changes
   useEffect(() => {
     if (currentTheme) {
@@ -281,10 +315,9 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                 <CardTitle className="text-lg sm:text-xl">Chat Room</CardTitle>
               </div>
 
-              <Badge variant="secondary" className="hidden sm:flex items-center gap-1">
-                <Users className="w-3 h-3" />
-                {usersCount} online
-              </Badge>
+              <div className="hidden sm:block">
+                <OnlineUsersList usersCount={usersCount} />
+              </div>
             </div>
 
             <div className="flex items-center gap-1 sm:gap-2 min-w-0">
@@ -310,10 +343,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
           
           {/* Mobile online count and theme */}
           <div className="sm:hidden mt-2 flex items-center justify-between">
-            <Badge variant="secondary" className="flex items-center gap-1 w-fit">
-              <Users className="w-3 h-3" />
-              {usersCount} online
-            </Badge>
+            <OnlineUsersList usersCount={usersCount} />
           </div>
         </CardHeader>
       </Card>

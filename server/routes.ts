@@ -158,6 +158,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get online users list
+  app.get("/api/users/online", async (req, res) => {
+    try {
+      const users = await storage.getOnlineUsers();
+      res.json(users);
+    } catch (error) {
+      console.error("Error fetching online users:", error);
+      res.status(500).json({ message: "Failed to fetch online users" });
+    }
+  });
+
+  // Update user activity (heartbeat)
+  app.post("/api/users/:id/activity", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      await storage.updateUserActivity(userId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error updating user activity:", error);
+      res.status(500).json({ message: "Failed to update user activity" });
+    }
+  });
+
   // Get current theme
   app.get("/api/chat/theme", async (req, res) => {
     try {

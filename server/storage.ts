@@ -7,14 +7,14 @@ export interface IStorage {
   getUserByUsername(username: string): Promise<User | undefined>;
   createUser(user: SignUpData): Promise<User>;
   authenticateUser(credentials: SignInData): Promise<User | null>;
-  
+
   // Message CRUD operations
   getMessages(): Promise<Message[]>;
   createMessage(message: InsertMessage): Promise<Message>;
   updateMessage(id: number, userId: number, updates: UpdateMessage): Promise<Message | null>;
   deleteMessage(id: number, userId: number): Promise<boolean>;
   getMessageById(id: number): Promise<Message | undefined>;
-  
+
   // Theme and settings operations
   getActiveTheme(): Promise<ChatTheme | undefined>;
   setActiveTheme(themeId: number): Promise<ChatTheme>;
@@ -34,13 +34,13 @@ export class MemStorage implements IStorage {
     this.messages = new Map();
     this.currentUserId = 1;
     this.currentMessageId = 1;
-    
+
     // Initialize default themes
     this.themes = new Map();
     this.initializeThemes();
     this.currentTheme = this.themes.get(1)!; // Default to first theme
   }
-  
+
   private initializeThemes() {
     const defaultThemes = [
       {
@@ -116,7 +116,7 @@ export class MemStorage implements IStorage {
         createdAt: new Date()
       }
     ];
-    
+
     defaultThemes.forEach(theme => {
       this.themes.set(theme.id, theme);
     });
@@ -157,7 +157,7 @@ export class MemStorage implements IStorage {
       console.log("User not found:", credentials.email);
       return null;
     }
-    
+
     // For development, we're using plain text password comparison
     // In production, you should use proper password hashing
     if (user.password !== credentials.password) {
@@ -166,7 +166,7 @@ export class MemStorage implements IStorage {
       console.log("Provided password:", credentials.password);
       return null;
     }
-    
+
     console.log("Authentication successful for user:", user.email);
     return user;
   }
@@ -198,13 +198,13 @@ export class MemStorage implements IStorage {
     if (!message || message.userId !== userId) {
       return null;
     }
-    
+
     const updatedMessage: Message = {
       ...message,
       ...updates,
       updatedAt: new Date(),
     };
-    
+
     this.messages.set(id, updatedMessage);
     return updatedMessage;
   }
@@ -214,7 +214,7 @@ export class MemStorage implements IStorage {
     if (!message || message.userId !== userId) {
       return false;
     }
-    
+
     return this.messages.delete(id);
   }
 
@@ -231,19 +231,68 @@ export class MemStorage implements IStorage {
     if (!theme) {
       throw new Error('Theme not found');
     }
-    
+
     // Mark previous theme as inactive
     this.currentTheme.isActive = false;
-    
+
     // Set new theme as active
     theme.isActive = true;
     this.currentTheme = theme;
-    
+
     return theme;
   }
 
+  // Get users count (only online users)
   async getUsersCount(): Promise<number> {
-    return this.users.size;
+    try {
+      // Count users who were active in the last 2 minutes
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      return Array.from(this.users.values()).filter(user => user.lastActivity && user.lastActivity > twoMinutesAgo).length;
+    } catch (error) {
+      console.error("Failed to get users count:", error);
+      return 0;
+    }
+  }
+
+  // Get all users with online status
+  async getOnlineUsers(): Promise<Array<{
+    id: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+    email: string;
+    isOnline: boolean;
+    lastActivity: Date | null;
+  }>> {
+    try {
+      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
+      const allUsers = Array.from(this.users.values());
+
+      return allUsers.map(user => ({
+        id: user.id,
+        username: user.username,
+        firstName: user.firstName,
+        lastName: user.lastName,
+        email: user.email,
+        isOnline: user.lastActivity ? user.lastActivity > twoMinutesAgo : false,
+        lastActivity: user.lastActivity,
+      }));
+    } catch (error) {
+      console.error("Failed to get online users:", error);
+      return [];
+    }
+  }
+
+  // Update user activity (heartbeat)
+  async updateUserActivity(userId: number): Promise<void> {
+    try {
+      const user = this.users.get(userId);
+      if (user) {
+        user.lastActivity = new Date();
+      }
+    } catch (error) {
+      console.error("Failed to update user activity:", error);
+    }
   }
 }
 
