@@ -113,19 +113,34 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
       const response = await apiRequest("DELETE", `/api/messages/${id}`, {
         userId: currentUser.id,
       });
+      
+      // Check if response is ok
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.message || "Failed to delete message");
+      }
+      
+      // For 204 responses, don't try to parse JSON
+      if (response.status === 204) {
+        return { success: true };
+      }
+      
       return response.json();
     },
     onSuccess: () => {
+      // Force immediate refresh of messages
       queryClient.invalidateQueries({ queryKey: ["/api/messages"] });
+      queryClient.refetchQueries({ queryKey: ["/api/messages"] });
       toast({
-        title: "Message deleted!",
-        description: "Your message has been deleted.",
+        title: "ลบข้อความแล้ว!",
+        description: "ข้อความของคุณถูกลบเรียบร้อยแล้ว",
       });
     },
     onError: (error: any) => {
+      console.error("Delete message error:", error);
       toast({
-        title: "Failed to delete message",
-        description: error.message || "Could not delete message.",
+        title: "ลบข้อความไม่สำเร็จ",
+        description: error.message || "ไม่สามารถลบข้อความได้",
         variant: "destructive",
       });
     },
@@ -232,7 +247,8 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
   };
 
   const deleteMessage = (id: number) => {
-    if (confirm("Are you sure you want to delete this message?")) {
+    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
+      console.log("Attempting to delete message:", id);
       deleteMessageMutation.mutate(id);
     }
   };
