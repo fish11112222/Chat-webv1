@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useMutation } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -7,15 +7,13 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import type { User } from "@shared/schema";
 
-interface SimpleAuthPageProps {
+interface AuthPageProps {
   onAuthSuccess: (user: User) => void;
 }
 
-export default function SimpleAuthPage({ onAuthSuccess }: SimpleAuthPageProps) {
+export default function SimpleAuthPage({ onAuthSuccess }: AuthPageProps) {
   const [isSignUp, setIsSignUp] = useState(false);
   const { toast } = useToast();
-
-  // Sign Up Form State
   const [signUpData, setSignUpData] = useState({
     firstName: "",
     lastName: "",
@@ -23,20 +21,18 @@ export default function SimpleAuthPage({ onAuthSuccess }: SimpleAuthPageProps) {
     email: "",
     password: "",
   });
-
-  // Sign In Form State
   const [signInData, setSignInData] = useState({
     email: "",
     password: "",
   });
 
-  // Sign up mutation
   const signUpMutation = useMutation({
     mutationFn: async (data: typeof signUpData) => {
       const response = await apiRequest("POST", "/api/auth/signup", data);
       return response.json();
     },
     onSuccess: (user: User) => {
+      localStorage.setItem("user", JSON.stringify(user));
       toast({
         title: "Account created!",
         description: "Welcome to the chat room!",
@@ -52,13 +48,13 @@ export default function SimpleAuthPage({ onAuthSuccess }: SimpleAuthPageProps) {
     },
   });
 
-  // Sign in mutation
   const signInMutation = useMutation({
     mutationFn: async (data: typeof signInData) => {
       const response = await apiRequest("POST", "/api/auth/signin", data);
       return response.json();
     },
     onSuccess: (user: User) => {
+      localStorage.setItem("user", JSON.stringify(user));
       toast({
         title: "Welcome back!",
         description: `Hello, ${user.firstName}!`,
@@ -100,6 +96,19 @@ export default function SimpleAuthPage({ onAuthSuccess }: SimpleAuthPageProps) {
 
   const isLoading = signUpMutation.isPending || signInMutation.isPending;
 
+    useEffect(() => {
+        const storedUser = localStorage.getItem("user");
+        if (storedUser) {
+            try {
+                const user = JSON.parse(storedUser) as User;
+                onAuthSuccess(user);
+            } catch (error) {
+                console.error("Error parsing user from localStorage:", error);
+                localStorage.removeItem("user");
+            }
+        }
+    }, [onAuthSuccess]);
+
   return (
     <div className="min-h-screen bg-surface flex items-center justify-center p-4">
       <div className="w-full max-w-md">
@@ -123,7 +132,7 @@ export default function SimpleAuthPage({ onAuthSuccess }: SimpleAuthPageProps) {
               }
             </CardDescription>
           </CardHeader>
-          
+
           <CardContent>
             {isSignUp ? (
               <form onSubmit={handleSignUpSubmit} className="space-y-4">

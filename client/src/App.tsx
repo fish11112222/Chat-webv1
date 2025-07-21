@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Switch, Route } from "wouter";
 import { queryClient } from "./lib/queryClient";
 import { QueryClientProvider } from "@tanstack/react-query";
@@ -11,14 +11,44 @@ import type { User } from "@shared/schema";
 
 function Router() {
   const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  // Load user from localStorage on app start
+  useEffect(() => {
+    try {
+      const savedUser = localStorage.getItem('chatUser');
+      if (savedUser) {
+        const user = JSON.parse(savedUser);
+        setCurrentUser(user);
+      }
+    } catch (error) {
+      console.error('Failed to load saved user:', error);
+      localStorage.removeItem('chatUser');
+    }
+    setIsLoading(false);
+  }, []);
 
   const handleAuthSuccess = (user: User) => {
     setCurrentUser(user);
+    localStorage.setItem('chatUser', JSON.stringify(user));
   };
 
   const handleSignOut = () => {
     setCurrentUser(null);
+    localStorage.removeItem('chatUser');
   };
+
+  // Show loading while checking for saved session
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-surface">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-on-surface-variant">Loading...</p>
+        </div>
+      </div>
+    );
+  }
 
   if (!currentUser) {
     return <SimpleAuthPage onAuthSuccess={handleAuthSuccess} />;

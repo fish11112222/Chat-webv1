@@ -114,18 +114,18 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
       const response = await apiRequest("DELETE", `/api/messages/${id}`, {
         userId: currentUser.id,
       });
-      
+
       // Check if response is ok
       if (!response.ok) {
         const errorData = await response.json();
         throw new Error(errorData.message || "Failed to delete message");
       }
-      
+
       // For 204 responses, don't try to parse JSON
       if (response.status === 204) {
         return { success: true };
       }
-      
+
       return response.json();
     },
     onSuccess: () => {
@@ -340,7 +340,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
               </Button>
             </div>
           </div>
-          
+
           {/* Mobile online count and theme */}
           <div className="sm:hidden mt-2 flex items-center justify-between">
             <OnlineUsersList usersCount={usersCount} />

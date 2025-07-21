@@ -28,6 +28,7 @@ export class MemStorage implements IStorage {
   private currentMessageId: number;
   private currentTheme: ChatTheme;
   private themes: Map<number, ChatTheme>;
+  private userActivity: Map<number, Date>;
 
   constructor() {
     this.users = new Map();
@@ -39,6 +40,7 @@ export class MemStorage implements IStorage {
     this.themes = new Map();
     this.initializeThemes();
     this.currentTheme = this.themes.get(1)!; // Default to first theme
+    this.userActivity = new Map();
   }
 
   private initializeThemes() {
@@ -229,70 +231,35 @@ export class MemStorage implements IStorage {
   async setActiveTheme(themeId: number): Promise<ChatTheme> {
     const theme = this.themes.get(themeId);
     if (!theme) {
-      throw new Error('Theme not found');
+      throw new Error(`Theme with ID ${themeId} not found`);
     }
-
-    // Mark previous theme as inactive
-    this.currentTheme.isActive = false;
-
-    // Set new theme as active
-    theme.isActive = true;
     this.currentTheme = theme;
-
     return theme;
   }
 
-  // Get users count (only online users)
   async getUsersCount(): Promise<number> {
-    try {
-      // Count users who were active in the last 2 minutes
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-      return Array.from(this.users.values()).filter(user => user.lastActivity && user.lastActivity > twoMinutesAgo).length;
-    } catch (error) {
-      console.error("Failed to get users count:", error);
-      return 0;
-    }
+    return this.users.size;
   }
 
-  // Get all users with online status
-  async getOnlineUsers(): Promise<Array<{
-    id: number;
-    username: string;
-    firstName: string;
-    lastName: string;
-    email: string;
-    isOnline: boolean;
-    lastActivity: Date | null;
-  }>> {
-    try {
-      const twoMinutesAgo = new Date(Date.now() - 2 * 60 * 1000);
-      const allUsers = Array.from(this.users.values());
+  async getOnlineUsers(): Promise<User[]> {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const onlineUsers: User[] = [];
 
-      return allUsers.map(user => ({
-        id: user.id,
-        username: user.username,
-        firstName: user.firstName,
-        lastName: user.lastName,
-        email: user.email,
-        isOnline: user.lastActivity ? user.lastActivity > twoMinutesAgo : false,
-        lastActivity: user.lastActivity,
-      }));
-    } catch (error) {
-      console.error("Failed to get online users:", error);
-      return [];
-    }
-  }
-
-  // Update user activity (heartbeat)
-  async updateUserActivity(userId: number): Promise<void> {
-    try {
-      const user = this.users.get(userId);
-      if (user) {
-        user.lastActivity = new Date();
+    for (const [userId, lastActive] of this.userActivity.entries()) {
+      if (lastActive > fiveMinutesAgo) {
+        const user = this.users.get(userId);
+        if (user) {
+          const { password, ...userWithoutPassword } = user;
+          onlineUsers.push(userWithoutPassword as User);
+        }
       }
-    } catch (error) {
-      console.error("Failed to update user activity:", error);
     }
+
+    return onlineUsers;
+  }
+
+  async updateUserActivity(userId: number): Promise<void> {
+    this.userActivity.set(userId, new Date());
   }
 }
 
