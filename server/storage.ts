@@ -19,6 +19,8 @@ export interface IStorage {
   getActiveTheme(): Promise<ChatTheme | undefined>;
   setActiveTheme(themeId: number): Promise<ChatTheme>;
   getUsersCount(): Promise<number>;
+  getOnlineUsers(): Promise<User[]>;
+  updateUserActivity(userId: number): Promise<void>;
 }
 
 export class MemStorage implements IStorage {
@@ -245,13 +247,14 @@ export class MemStorage implements IStorage {
     const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
     const onlineUsers: User[] = [];
 
-    for (const [userId, lastActive] of this.userActivity.entries()) {
-      if (lastActive > fiveMinutesAgo) {
-        const user = this.users.get(userId);
-        if (user) {
-          const { password, ...userWithoutPassword } = user;
-          onlineUsers.push(userWithoutPassword as User);
-        }
+    // Check all users for recent activity
+    for (const [userId, user] of this.users.entries()) {
+      const lastActive = this.userActivity.get(userId);
+      
+      // If user has activity tracking and it's recent, or if no activity tracking exists (assume online)
+      if (!lastActive || lastActive > fiveMinutesAgo) {
+        const { password, ...userWithoutPassword } = user;
+        onlineUsers.push(userWithoutPassword as User);
       }
     }
 
