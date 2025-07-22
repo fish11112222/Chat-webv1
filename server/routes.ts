@@ -67,6 +67,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get total registered users count
+  app.get("/api/users/total", async (req, res) => {
+    try {
+      const count = await storage.getTotalUsersCount();
+      res.json({ count });
+    } catch (error) {
+      console.error("Error fetching total users count:", error);
+      res.status(500).json({ message: "Failed to fetch total users count" });
+    }
+  });
+
   // Get online users list (must be before the parameterized route)
   app.get("/api/users/online", async (req, res) => {
     try {

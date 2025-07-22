@@ -39,7 +39,7 @@ export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
 
   // Get total users count from API
   const { data: totalUsersData } = useQuery({
-    queryKey: ["/api/users/total"],
+    queryKey: ["/api/users/count"],
     refetchInterval: 10000,
     enabled: isOpen,
   });

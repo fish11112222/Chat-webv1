@@ -21,6 +21,7 @@ export interface IStorage {
   getUsersCount(): Promise<number>;
   getOnlineUsers(): Promise<User[]>;
   updateUserActivity(userId: number): Promise<void>;
+  getTotalUsersCount(): Promise<number>;
 }
 
 export class MemStorage implements IStorage {
@@ -281,6 +282,11 @@ export class MemStorage implements IStorage {
 
   async updateUserActivity(userId: number): Promise<void> {
     this.userActivity.set(userId, new Date());
+  }
+
+  async getTotalUsersCount(): Promise<number> {
+    // Return total number of registered users regardless of activity status
+    return this.users.size;
   }
 }
 
