@@ -30,15 +30,34 @@ interface OnlineUsersListProps {
 export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
   const [isOpen, setIsOpen] = useState(false);
 
-  const { data: users = [] } = useQuery<OnlineUser[]>({
+  // Get all registered users
+  const { data: allUsers = [] } = useQuery<OnlineUser[]>({
     queryKey: ["/api/users/online"],
     refetchInterval: 10000, // Update every 10 seconds
     enabled: isOpen, // Only fetch when popover is open
   });
 
-  // Assume users are online if isOnline is undefined or true
-  const onlineUsers = users.filter(user => user.isOnline !== false);
-  const offlineUsers = users.filter(user => user.isOnline === false);
+  // Get total users count from API
+  const { data: totalUsersData } = useQuery({
+    queryKey: ["/api/users/total"],
+    refetchInterval: 10000,
+    enabled: isOpen,
+  });
+
+  const totalRegisteredUsers = allUsers.length;
+
+  // Check activity status - users are active if they have recent activity or no activity tracking
+  const activeUsers = allUsers.filter(user => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const lastActivity = user.lastActivity ? new Date(user.lastActivity) : null;
+    return !lastActivity || lastActivity > fiveMinutesAgo;
+  });
+
+  const inactiveUsers = allUsers.filter(user => {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const lastActivity = user.lastActivity ? new Date(user.lastActivity) : null;
+    return lastActivity && lastActivity <= fiveMinutesAgo;
+  });
 
   const getInitials = (firstName: string, lastName: string) => {
     return `${firstName[0]}${lastName[0]}`.toUpperCase();
@@ -63,7 +82,7 @@ export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
         <Button variant="ghost" size="sm" className="h-auto p-2">
           <Badge variant="secondary" className="flex items-center gap-1 cursor-pointer hover:bg-gray-200 transition-colors">
             <Users className="w-3 h-3" />
-            {usersCount} online
+            {totalRegisteredUsers} users ({activeUsers.length} active)
           </Badge>
         </Button>
       </PopoverTrigger>
@@ -72,20 +91,20 @@ export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
           <CardHeader className="pb-3">
             <CardTitle className="text-base flex items-center gap-2">
               <Users className="w-4 h-4" />
-              Users ({users.length})
+              Registered Users ({totalRegisteredUsers})
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             <ScrollArea className="h-96">
-              {/* Online Users */}
-              {onlineUsers.length > 0 && (
+              {/* Active Users */}
+              {activeUsers.length > 0 && (
                 <div className="px-4 pb-3">
                   <div className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-2">
                     <Circle className="w-2 h-2 fill-green-500 text-green-500" />
-                    Online ({onlineUsers.length})
+                    Active ({activeUsers.length})
                   </div>
                   <div className="space-y-2">
-                    {onlineUsers.map((user) => (
+                    {activeUsers.map((user) => (
                       <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="relative">
                           <Avatar className="w-8 h-8">
@@ -112,15 +131,15 @@ export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
                 </div>
               )}
 
-              {/* Offline Users */}
-              {offlineUsers.length > 0 && (
+              {/* Inactive Users */}
+              {inactiveUsers.length > 0 && (
                 <div className="px-4 pb-3">
                   <div className="text-sm font-medium text-gray-600 mb-2 flex items-center gap-2">
                     <Circle className="w-2 h-2 fill-gray-400 text-gray-400" />
-                    Offline ({offlineUsers.length})
+                    Inactive ({inactiveUsers.length})
                   </div>
                   <div className="space-y-2">
-                    {offlineUsers.map((user) => (
+                    {inactiveUsers.map((user) => (
                       <div key={user.id} className="flex items-center gap-3 p-2 rounded-lg hover:bg-gray-50 transition-colors">
                         <div className="relative">
                           <Avatar className="w-8 h-8">
@@ -147,10 +166,10 @@ export default function OnlineUsersList({ usersCount }: OnlineUsersListProps) {
                 </div>
               )}
 
-              {users.length === 0 && (
+              {allUsers.length === 0 && (
                 <div className="px-4 py-8 text-center text-gray-500">
                   <Users className="w-8 h-8 mx-auto mb-2 text-gray-300" />
-                  <div className="text-sm">No users found</div>
+                  <div className="text-sm">No registered users found</div>
                 </div>
               )}
             </ScrollArea>

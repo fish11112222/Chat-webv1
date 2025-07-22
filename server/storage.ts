@@ -240,13 +240,11 @@ export class MemStorage implements IStorage {
   }
 
   async getUsersCount(): Promise<number> {
-    // Count only registered users who are active
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    // Count active registered users
     let activeRegisteredUsers = 0;
 
     for (const [userId, user] of this.users.entries()) {
-      const lastActive = this.userActivity.get(userId);
-      if (!lastActive || lastActive > fiveMinutesAgo) {
+      if (this.isUserActive(userId)) {
         activeRegisteredUsers++;
       }
     }
@@ -255,24 +253,30 @@ export class MemStorage implements IStorage {
   }
 
   async getOnlineUsers(): Promise<User[]> {
-    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
-    const onlineUsers: User[] = [];
+    const allUsers: User[] = [];
 
-    // Check registered users for recent activity
+    // Return all registered users with their activity status
     for (const [userId, user] of this.users.entries()) {
       const lastActive = this.userActivity.get(userId);
+      const { password, ...userWithoutPassword } = user;
       
-      // If user has activity tracking and it's recent, or if no activity tracking exists (assume online)
-      if (!lastActive || lastActive > fiveMinutesAgo) {
-        const { password, ...userWithoutPassword } = user;
-        onlineUsers.push(userWithoutPassword as User);
-      }
+      // Add lastActivity field to user object
+      const userWithActivity = {
+        ...userWithoutPassword,
+        lastActivity: lastActive ? lastActive.toISOString() : null,
+        isOnline: this.isUserActive(userId)
+      };
+      
+      allUsers.push(userWithActivity as User);
     }
 
-    // Only show activity for users who have activity tracking AND are registered users
-    // Remove mock guest users - only show real registered users
+    return allUsers;
+  }
 
-    return onlineUsers;
+  private isUserActive(userId: number): boolean {
+    const fiveMinutesAgo = new Date(Date.now() - 5 * 60 * 1000);
+    const lastActive = this.userActivity.get(userId);
+    return !lastActive || lastActive > fiveMinutesAgo;
   }
 
   async updateUserActivity(userId: number): Promise<void> {
