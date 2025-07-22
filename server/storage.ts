@@ -166,12 +166,15 @@ export class MemoryStorage implements IStorage {
       throw new Error("Username already taken");
     }
 
-    // Generate unique ID that's not used yet
-    let newId = this.nextUserId;
+    // Generate truly unique ID using timestamp + random
+    const timestamp = Date.now();
+    const random = Math.floor(Math.random() * 1000);
+    let newId = parseInt(`${timestamp}${random}`.slice(-8)); // Take last 8 digits to keep it manageable
+    
+    // Ensure it's not already used (very unlikely but just in case)
     while (this.users.has(newId)) {
       newId++;
     }
-    this.nextUserId = newId + 1;
 
     const user: User = {
       id: newId,
@@ -182,7 +185,11 @@ export class MemoryStorage implements IStorage {
     };
     
     this.users.set(user.id, user);
-    console.log("User created successfully:", user);
+    console.log("User created successfully with unique ID:", user.id, user.firstName, user.lastName);
+    
+    // Update nextUserId to ensure no conflicts
+    this.nextUserId = Math.max(this.nextUserId, newId + 1);
+    
     return user;
   }
 
@@ -259,18 +266,28 @@ export class MemoryStorage implements IStorage {
     
     console.log(`Delete attempt: Message ${id} (owner: ${messageOwner?.firstName} ${messageOwner?.lastName}, ID: ${message.userId}) by user ${user?.firstName} ${user?.lastName} (ID: ${userId})`);
 
-    if (message.userId !== userId) {
-      console.log(`SECURITY VIOLATION: User ${userId} (${user?.firstName} ${user?.lastName}) attempting to delete message ${id} owned by user ${message.userId} (${messageOwner?.firstName} ${messageOwner?.lastName})`);
+    // STRICT ownership check - both ID and user must exist and match
+    if (message.userId !== userId || !user || !messageOwner) {
+      console.log(`❌ SECURITY VIOLATION: User ${userId} (${user?.firstName} ${user?.lastName}) attempting to delete message ${id} owned by user ${message.userId} (${messageOwner?.firstName} ${messageOwner?.lastName})`);
+      console.log(`❌ Details: messageUserId=${message.userId}, currentUserId=${userId}, userExists=${!!user}, messageOwnerExists=${!!messageOwner}`);
       return false;
     }
 
-    console.log(`User ${userId} deleting their message ${id}`);
+    // Additional check: ensure user and message owner are actually the same person by comparing all fields
+    if (user.email !== messageOwner.email || user.username !== messageOwner.username) {
+      console.log(`❌ SECURITY VIOLATION: ID match but user data doesn't match!`);
+      console.log(`❌ Current user: ${user.email}, ${user.username}`);
+      console.log(`❌ Message owner: ${messageOwner.email}, ${messageOwner.username}`);
+      return false;
+    }
+
+    console.log(`✅ User ${userId} deleting their own message ${id}`);
     const deleted = this.messages.delete(id);
     
     if (deleted) {
-      console.log(`Message ${id} successfully deleted by user ${userId}`);
+      console.log(`✅ Message ${id} successfully deleted by user ${userId}`);
     } else {
-      console.log(`Failed to delete message ${id}`);
+      console.log(`❌ Failed to delete message ${id}`);
     }
     
     return deleted;

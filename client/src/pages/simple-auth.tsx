@@ -32,10 +32,12 @@ export default function SimpleAuthPage({ onAuthSuccess }: AuthPageProps) {
       return response.json();
     },
     onSuccess: (user: User) => {
+      localStorage.clear(); // Clear any old data
       localStorage.setItem("chatUser", JSON.stringify(user));
+      console.log("New account created:", user.firstName, user.lastName, "ID:", user.id, "Email:", user.email);
       toast({
         title: "Account created!",
-        description: "Welcome to the chat room!",
+        description: `Welcome to the chat room, ${user.firstName}!`,
       });
       onAuthSuccess(user);
     },
@@ -54,7 +56,9 @@ export default function SimpleAuthPage({ onAuthSuccess }: AuthPageProps) {
       return response.json();
     },
     onSuccess: (user: User) => {
+      localStorage.clear(); // Clear any old data
       localStorage.setItem("chatUser", JSON.stringify(user));
+      console.log("User signed in:", user.firstName, user.lastName, "ID:", user.id, "Email:", user.email);
       toast({
         title: "Welcome back!",
         description: `Hello, ${user.firstName}!`,

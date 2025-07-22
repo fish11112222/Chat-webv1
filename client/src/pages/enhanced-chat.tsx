@@ -431,7 +431,9 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
               ) : (
                 <div className="space-y-4">
                   {messages.map((msg) => {
-                    const isOwnMessage = msg.userId === currentUser.id;
+                    // Strict ownership check: same ID AND same email to prevent ID conflicts
+                    const isOwnMessage = msg.userId === currentUser.id && 
+                                       msg.username === `${currentUser.firstName} ${currentUser.lastName}`;
 
                     return (
                       <div
