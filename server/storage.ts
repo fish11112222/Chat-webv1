@@ -5,6 +5,7 @@ export interface IStorage {
   getUser(id: number): Promise<User | undefined>;
   getUserByEmail(email: string): Promise<User | undefined>;
   getUserByUsername(username: string): Promise<User | undefined>;
+  getAllUsers(): Promise<User[]>;
   createUser(user: SignUpData): Promise<User>;
   authenticateUser(credentials: SignInData): Promise<User | null>;
 
@@ -150,6 +151,7 @@ export class MemStorage implements IStorage {
       ...signUpData, 
       id, 
       avatar: null,
+      lastActivity: null,
       createdAt: now
     };
     this.users.set(id, user);
@@ -244,11 +246,11 @@ export class MemStorage implements IStorage {
     // Count active registered users
     let activeRegisteredUsers = 0;
 
-    for (const [userId, user] of this.users.entries()) {
+    Array.from(this.users.entries()).forEach(([userId, user]) => {
       if (this.isUserActive(userId)) {
         activeRegisteredUsers++;
       }
-    }
+    });
 
     return activeRegisteredUsers;
   }
@@ -257,19 +259,18 @@ export class MemStorage implements IStorage {
     const allUsers: User[] = [];
 
     // Return all registered users with their activity status
-    for (const [userId, user] of this.users.entries()) {
+    Array.from(this.users.entries()).forEach(([userId, user]) => {
       const lastActive = this.userActivity.get(userId);
       const { password, ...userWithoutPassword } = user;
       
-      // Add lastActivity field to user object
+      // Add lastActivity field to user object, but keep it as a proper User type
       const userWithActivity = {
         ...userWithoutPassword,
-        lastActivity: lastActive ? lastActive.toISOString() : null,
-        isOnline: this.isUserActive(userId)
+        lastActivity: lastActive || null
       };
       
-      allUsers.push(userWithActivity as User);
-    }
+      allUsers.push(userWithActivity);
+    });
 
     return allUsers;
   }
@@ -287,6 +288,15 @@ export class MemStorage implements IStorage {
   async getTotalUsersCount(): Promise<number> {
     // Return total number of registered users regardless of activity status
     return this.users.size;
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    const allUsers: User[] = [];
+    Array.from(this.users.values()).forEach((user) => {
+      const { password, ...userWithoutPassword } = user;
+      allUsers.push(userWithoutPassword as User);
+    });
+    return allUsers;
   }
 }
 
