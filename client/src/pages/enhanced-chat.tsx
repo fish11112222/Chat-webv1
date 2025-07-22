@@ -287,8 +287,12 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
       messageOwnerId: messageToDelete?.userId,
       currentUserId: currentUser.id,
       currentUserName: `${currentUser.firstName} ${currentUser.lastName}`,
+      currentUserEmail: currentUser.email,
       messageOwnerName: messageToDelete?.username,
-      canDelete: messageToDelete?.userId === currentUser.id
+      canDelete: messageToDelete?.userId === currentUser.id,
+      isStrictlyEqual: messageToDelete?.userId === currentUser.id,
+      messageOwnerIdType: typeof messageToDelete?.userId,
+      currentUserIdType: typeof currentUser.id
     });
     
     if (!messageToDelete) {
@@ -300,17 +304,25 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
       return;
     }
     
+    // ทำการตรวจสอบอย่างเข้มงวด
     if (messageToDelete.userId !== currentUser.id) {
+      console.log("SECURITY CHECK FAILED:", {
+        messageOwnerId: messageToDelete.userId,
+        currentUserId: currentUser.id,
+        equal: messageToDelete.userId === currentUser.id,
+        strictEqual: messageToDelete.userId === currentUser.id
+      });
+      
       toast({
-        title: "ไม่อนุญาต",
-        description: "คุณสามารถลบได้เฉพาะข้อความของตัวเองเท่านั้น",
+        title: "⚠️ ไม่อนุญาต",
+        description: `คุณไม่สามารถลบข้อความของ ${messageToDelete.username} ได้! คุณสามารถลบได้เฉพาะข้อความของตัวเองเท่านั้น`,
         variant: "destructive",
       });
       return;
     }
     
-    if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
-      console.log("Attempting to delete message:", id);
+    if (confirm(`คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?\n\n"${messageToDelete.content}"\n\nการลบจะไม่สามารถกู้คืนได้`)) {
+      console.log("User confirmed deletion of their own message:", id);
       deleteMessageMutation.mutate(id);
     }
   };

@@ -154,8 +154,27 @@ export class MemoryStorage implements IStorage {
   }
 
   async createUser(signUpData: SignUpData): Promise<User> {
+    // Check if user already exists by email
+    const existingUser = await this.getUserByEmail(signUpData.email);
+    if (existingUser) {
+      throw new Error("User with this email already exists");
+    }
+
+    // Check if username already exists
+    const existingUsername = await this.getUserByUsername(signUpData.username);
+    if (existingUsername) {
+      throw new Error("Username already taken");
+    }
+
+    // Generate unique ID that's not used yet
+    let newId = this.nextUserId;
+    while (this.users.has(newId)) {
+      newId++;
+    }
+    this.nextUserId = newId + 1;
+
     const user: User = {
-      id: this.nextUserId++,
+      id: newId,
       ...signUpData,
       avatar: null,
       lastActivity: null,
@@ -228,11 +247,33 @@ export class MemoryStorage implements IStorage {
 
   async deleteMessage(id: number, userId: number): Promise<boolean> {
     const message = this.messages.get(id);
-    if (!message || message.userId !== userId) {
+    
+    if (!message) {
+      console.log(`Message ${id} not found`);
       return false;
     }
+
+    // Get user details for better logging
+    const user = await this.getUser(userId);
+    const messageOwner = await this.getUser(message.userId);
     
-    return this.messages.delete(id);
+    console.log(`Delete attempt: Message ${id} (owner: ${messageOwner?.firstName} ${messageOwner?.lastName}, ID: ${message.userId}) by user ${user?.firstName} ${user?.lastName} (ID: ${userId})`);
+
+    if (message.userId !== userId) {
+      console.log(`SECURITY VIOLATION: User ${userId} (${user?.firstName} ${user?.lastName}) attempting to delete message ${id} owned by user ${message.userId} (${messageOwner?.firstName} ${messageOwner?.lastName})`);
+      return false;
+    }
+
+    console.log(`User ${userId} deleting their message ${id}`);
+    const deleted = this.messages.delete(id);
+    
+    if (deleted) {
+      console.log(`Message ${id} successfully deleted by user ${userId}`);
+    } else {
+      console.log(`Failed to delete message ${id}`);
+    }
+    
+    return deleted;
   }
 
   async getMessageById(id: number): Promise<Message | undefined> {

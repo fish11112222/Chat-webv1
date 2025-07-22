@@ -34,8 +34,9 @@ function Router() {
   };
 
   const handleSignOut = () => {
+    console.log("Signing out user:", currentUser?.firstName, currentUser?.lastName, "ID:", currentUser?.id);
     setCurrentUser(null);
-    localStorage.removeItem('chatUser');
+    localStorage.clear(); // Clear all localStorage data to prevent any conflicts
   };
 
   // Show loading while checking for saved session
