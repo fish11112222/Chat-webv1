@@ -10,6 +10,11 @@ export const users = pgTable("users", {
   firstName: text("first_name").notNull(),
   lastName: text("last_name").notNull(),
   avatar: text("avatar"),
+  bio: text("bio"),
+  location: text("location"),
+  website: text("website"),
+  dateOfBirth: timestamp("date_of_birth"),
+  isOnline: boolean("is_online").default(false),
   lastActivity: timestamp("last_activity", { withTimezone: true }),
   createdAt: timestamp("created_at", { withTimezone: true }).notNull().defaultNow(),
 });
@@ -90,10 +95,22 @@ export const updateMessageSchema = createInsertSchema(messages).pick({
   content: z.string().min(1, "Message cannot be empty").max(500, "Message cannot exceed 500 characters"),
 });
 
+// Profile schemas
+export const updateProfileSchema = z.object({
+  firstName: z.string().min(1, "ชื่อจริงไม่สามารถว่างได้").max(50, "ชื่อจริงยาวเกินไป").optional(),
+  lastName: z.string().min(1, "นามสกุลไม่สามารถว่างได้").max(50, "นามสกุลยาวเกินไป").optional(),
+  bio: z.string().max(500, "ประวัติส่วนตัวยาวเกินไป").optional(),
+  location: z.string().max(100, "ที่อยู่ยาวเกินไป").optional(),
+  website: z.string().url("ลิงก์เว็บไซต์ไม่ถูกต้อง").optional().or(z.literal("")),
+  dateOfBirth: z.string().optional(),
+  avatar: z.string().optional(),
+});
+
 // Types
 export type SignUpData = z.infer<typeof signUpSchema>;
 export type SignInData = z.infer<typeof signInSchema>;
 export type User = typeof users.$inferSelect;
+export type UpdateProfile = z.infer<typeof updateProfileSchema>;
 export type InsertMessage = z.infer<typeof insertMessageSchema>;
 export type UpdateMessage = z.infer<typeof updateMessageSchema>;
 export type Message = typeof messages.$inferSelect;

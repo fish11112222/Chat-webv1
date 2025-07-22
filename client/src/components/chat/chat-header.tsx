@@ -1,5 +1,6 @@
-import { Settings, LogOut } from "lucide-react";
+import { Settings, LogOut, Users, User } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { useLocation } from "wouter";
 
 interface ChatHeaderProps {
   currentUser: {
@@ -12,6 +13,7 @@ interface ChatHeaderProps {
 }
 
 export default function ChatHeader({ currentUser, onlineUsers, onSignOut }: ChatHeaderProps) {
+  const [, setLocation] = useLocation();
   return (
     <header className="bg-primary text-white px-6 py-4 shadow-material-2 relative z-10">
       <div className="flex items-center justify-between">
@@ -28,7 +30,7 @@ export default function ChatHeader({ currentUser, onlineUsers, onSignOut }: Chat
         </div>
         
         <div className="flex items-center space-x-4">
-          <div className="flex items-center space-x-2 bg-white bg-opacity-10 rounded-full px-3 py-2">
+          <div className="flex items-center space-x-2 bg-white bg-opacity-10 rounded-full px-3 py-2 cursor-pointer hover:bg-opacity-20 transition-colors" onClick={() => setLocation("/profile")}>
             <div className="w-8 h-8 bg-accent rounded-full flex items-center justify-center">
               <span className="text-white text-sm font-medium">{currentUser.initials}</span>
             </div>
@@ -39,8 +41,28 @@ export default function ChatHeader({ currentUser, onlineUsers, onSignOut }: Chat
             variant="ghost"
             size="icon"
             className="w-10 h-10 rounded-full bg-white bg-opacity-10 hover:bg-opacity-20 text-white hover:text-white"
+            onClick={() => setLocation("/users")}
+            title="ดูผู้ใช้งานทั้งหมด"
+          >
+            <Users className="w-5 h-5" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-10 h-10 rounded-full bg-white bg-opacity-10 hover:bg-opacity-20 text-white hover:text-white"
+            onClick={() => setLocation("/profile")}
+            title="โปรไฟล์ของฉัน"
+          >
+            <User className="w-5 h-5" />
+          </Button>
+          
+          <Button
+            variant="ghost"
+            size="icon"
+            className="w-10 h-10 rounded-full bg-white bg-opacity-10 hover:bg-opacity-20 text-white hover:text-white"
             onClick={onSignOut}
-            title="Sign Out"
+            title="ออกจากระบบ"
           >
             <LogOut className="w-5 h-5" />
           </Button>

@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import EnhancedChatPage from "@/pages/enhanced-chat";
 import SimpleAuthPage from "@/pages/simple-auth";
+import { ProfilePage } from "@/pages/profile";
+import { UserListPage } from "@/pages/user-list";
 import NotFound from "@/pages/not-found";
 import type { User } from "@shared/schema";
 
@@ -58,6 +60,10 @@ function Router() {
   return (
     <Switch>
       <Route path="/" component={() => <EnhancedChatPage currentUser={currentUser} onSignOut={handleSignOut} />} />
+      <Route path="/chat" component={() => <EnhancedChatPage currentUser={currentUser} onSignOut={handleSignOut} />} />
+      <Route path="/profile" component={() => <ProfilePage currentUser={currentUser} onSignOut={handleSignOut} />} />
+      <Route path="/profile/:id" component={() => <ProfilePage currentUser={currentUser} onSignOut={handleSignOut} />} />
+      <Route path="/users" component={() => <UserListPage currentUser={currentUser} />} />
       <Route component={NotFound} />
     </Switch>
   );

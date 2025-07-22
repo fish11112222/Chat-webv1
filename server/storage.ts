@@ -1,5 +1,5 @@
 
-import { type User, type SignUpData, type SignInData, type Message, type InsertMessage, type UpdateMessage, type ChatTheme, type ChatSettings } from "@shared/schema";
+import { type User, type SignUpData, type SignInData, type Message, type InsertMessage, type UpdateMessage, type ChatTheme, type ChatSettings, type UpdateProfile } from "@shared/schema";
 
 export interface IStorage {
   // User operations
@@ -9,6 +9,7 @@ export interface IStorage {
   getAllUsers(): Promise<User[]>;
   createUser(user: SignUpData): Promise<User>;
   authenticateUser(credentials: SignInData): Promise<User | null>;
+  updateUserProfile(userId: number, updates: UpdateProfile): Promise<User | null>;
 
   // Message CRUD operations
   getMessages(): Promise<Message[]>;
@@ -180,6 +181,11 @@ export class MemoryStorage implements IStorage {
       id: newId,
       ...signUpData,
       avatar: null,
+      bio: null,
+      location: null,
+      website: null,
+      dateOfBirth: null,
+      isOnline: false,
       lastActivity: null,
       createdAt: new Date(),
     };
@@ -214,6 +220,28 @@ export class MemoryStorage implements IStorage {
       console.error("Error authenticating user:", error);
       return null;
     }
+  }
+
+  async updateUserProfile(userId: number, updates: UpdateProfile): Promise<User | null> {
+    const user = this.users.get(userId);
+    
+    if (!user) {
+      console.log(`User ${userId} not found for profile update`);
+      return null;
+    }
+
+    // Convert dateOfBirth string to Date if provided
+    const dateOfBirth = updates.dateOfBirth ? new Date(updates.dateOfBirth) : user.dateOfBirth;
+
+    const updatedUser: User = {
+      ...user,
+      ...updates,
+      dateOfBirth,
+    };
+    
+    this.users.set(userId, updatedUser);
+    console.log(`Profile updated for user ${userId}:`, updates);
+    return updatedUser;
   }
 
   async getMessages(): Promise<Message[]> {

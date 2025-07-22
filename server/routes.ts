@@ -1,7 +1,7 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
-import { insertMessageSchema, updateMessageSchema, signUpSchema, signInSchema, chatThemes, chatSettings } from "@shared/schema";
+import { insertMessageSchema, updateMessageSchema, signUpSchema, signInSchema, chatThemes, chatSettings, updateProfileSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -238,6 +238,68 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } catch (error) {
       console.error("Error updating user activity:", error);
       res.status(500).json({ message: "Failed to update user activity" });
+    }
+  });
+
+  // Get user profile by ID
+  app.get("/api/users/:id", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const user = await storage.getUser(userId);
+      
+      if (!user) {
+        return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = user;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      console.error("Error getting user profile:", error);
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลโปรไฟล์" });
+    }
+  });
+
+  // Update user profile
+  app.put("/api/users/:id/profile", async (req, res) => {
+    try {
+      const userId = parseInt(req.params.id);
+      const validatedData = updateProfileSchema.parse(req.body);
+      
+      const updatedUser = await storage.updateUserProfile(userId, validatedData);
+      
+      if (!updatedUser) {
+        return res.status(404).json({ message: "ไม่พบผู้ใช้งาน" });
+      }
+      
+      // Remove password from response
+      const { password, ...userWithoutPassword } = updatedUser;
+      res.json(userWithoutPassword);
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        res.status(400).json({ message: "ข้อมูลไม่ถูกต้อง", errors: error.errors });
+      } else {
+        console.error("Error updating user profile:", error);
+        res.status(500).json({ message: "เกิดข้อผิดพลาดในการอัปเดตโปรไฟล์" });
+      }
+    }
+  });
+
+  // Get all users (for user discovery)
+  app.get("/api/users", async (req, res) => {
+    try {
+      const users = await storage.getAllUsers();
+      
+      // Remove passwords from all users
+      const usersWithoutPasswords = users.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword;
+      });
+      
+      res.json(usersWithoutPasswords);
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      res.status(500).json({ message: "เกิดข้อผิดพลาดในการดึงข้อมูลผู้ใช้งาน" });
     }
   });
 
