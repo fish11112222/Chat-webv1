@@ -1,7 +1,5 @@
 
-import { users, messages, chatThemes, chatSettings, type User, type SignUpData, type SignInData, type Message, type InsertMessage, type UpdateMessage, type ChatTheme, type ChatSettings } from "@shared/schema";
-import { db } from "./db";
-import { eq, desc } from "drizzle-orm";
+import { type User, type SignUpData, type SignInData, type Message, type InsertMessage, type UpdateMessage, type ChatTheme, type ChatSettings } from "@shared/schema";
 
 export interface IStorage {
   // User operations
@@ -28,14 +26,22 @@ export interface IStorage {
   getTotalUsersCount(): Promise<number>;
 }
 
-export class PostgresStorage implements IStorage {
+export class MemoryStorage implements IStorage {
+  private users: Map<number, User>;
+  private messages: Map<number, Message>;
   private userActivity: Map<number, Date>;
   private currentTheme: ChatTheme;
   private themes: Map<number, ChatTheme>;
+  private nextUserId: number;
+  private nextMessageId: number;
 
   constructor() {
+    this.users = new Map();
+    this.messages = new Map();
     this.userActivity = new Map();
     this.themes = new Map();
+    this.nextUserId = 1;
+    this.nextMessageId = 1;
     this.initializeThemes();
     this.currentTheme = this.themes.get(1)!; // Default to first theme
   }
@@ -122,62 +128,43 @@ export class PostgresStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    try {
-      const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
-      return result[0];
-    } catch (error) {
-      console.error("Error getting user:", error);
-      return undefined;
-    }
+    return this.users.get(id);
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    try {
-      const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
-      return result[0];
-    } catch (error) {
-      console.error("Error getting user by email:", error);
-      return undefined;
+    for (const user of Array.from(this.users.values())) {
+      if (user.email === email) {
+        return user;
+      }
     }
+    return undefined;
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    try {
-      const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
-      return result[0];
-    } catch (error) {
-      console.error("Error getting user by username:", error);
-      return undefined;
+    for (const user of Array.from(this.users.values())) {
+      if (user.username === username) {
+        return user;
+      }
     }
+    return undefined;
   }
 
   async getAllUsers(): Promise<User[]> {
-    try {
-      const allUsers = await db.select().from(users);
-      return allUsers.map(user => {
-        const { password, ...userWithoutPassword } = user;
-        return userWithoutPassword as User;
-      });
-    } catch (error) {
-      console.error("Error getting all users:", error);
-      return [];
-    }
+    return Array.from(this.users.values());
   }
 
   async createUser(signUpData: SignUpData): Promise<User> {
-    try {
-      const result = await db.insert(users).values({
-        ...signUpData,
-        avatar: null,
-        lastActivity: null,
-      }).returning();
-      
-      console.log("User created successfully:", result[0]);
-      return result[0];
-    } catch (error) {
-      console.error("Error creating user:", error);
-      throw error;
-    }
+    const user: User = {
+      id: this.nextUserId++,
+      ...signUpData,
+      avatar: null,
+      lastActivity: null,
+      createdAt: new Date(),
+    };
+    
+    this.users.set(user.id, user);
+    console.log("User created successfully:", user);
+    return user;
   }
 
   async authenticateUser(credentials: SignInData): Promise<User | null> {
@@ -204,70 +191,52 @@ export class PostgresStorage implements IStorage {
   }
 
   async getMessages(): Promise<Message[]> {
-    try {
-      const result = await db.select().from(messages).orderBy(messages.createdAt);
-      return result;
-    } catch (error) {
-      console.error("Error getting messages:", error);
-      return [];
-    }
+    const messageList = Array.from(this.messages.values());
+    return messageList.sort((a, b) => a.createdAt.getTime() - b.createdAt.getTime());
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    try {
-      const result = await db.insert(messages).values({
-        ...insertMessage,
-        attachmentUrl: insertMessage.attachmentUrl || null,
-        attachmentType: insertMessage.attachmentType || null,
-        attachmentName: insertMessage.attachmentName || null,
-        updatedAt: null,
-      }).returning();
-      
-      return result[0];
-    } catch (error) {
-      console.error("Error creating message:", error);
-      throw error;
-    }
+    const message: Message = {
+      id: this.nextMessageId++,
+      ...insertMessage,
+      attachmentUrl: insertMessage.attachmentUrl || null,
+      attachmentType: insertMessage.attachmentType || null,
+      attachmentName: insertMessage.attachmentName || null,
+      createdAt: new Date(),
+      updatedAt: null,
+    };
+    
+    this.messages.set(message.id, message);
+    return message;
   }
 
   async updateMessage(id: number, userId: number, updates: UpdateMessage): Promise<Message | null> {
-    try {
-      const result = await db.update(messages)
-        .set({ 
-          ...updates, 
-          updatedAt: new Date() 
-        })
-        .where(eq(messages.id, id) && eq(messages.userId, userId))
-        .returning();
-      
-      return result[0] || null;
-    } catch (error) {
-      console.error("Error updating message:", error);
+    const message = this.messages.get(id);
+    if (!message || message.userId !== userId) {
       return null;
     }
+    
+    const updatedMessage: Message = {
+      ...message,
+      ...updates,
+      updatedAt: new Date(),
+    };
+    
+    this.messages.set(id, updatedMessage);
+    return updatedMessage;
   }
 
   async deleteMessage(id: number, userId: number): Promise<boolean> {
-    try {
-      const result = await db.delete(messages)
-        .where(eq(messages.id, id) && eq(messages.userId, userId))
-        .returning();
-      
-      return result.length > 0;
-    } catch (error) {
-      console.error("Error deleting message:", error);
+    const message = this.messages.get(id);
+    if (!message || message.userId !== userId) {
       return false;
     }
+    
+    return this.messages.delete(id);
   }
 
   async getMessageById(id: number): Promise<Message | undefined> {
-    try {
-      const result = await db.select().from(messages).where(eq(messages.id, id)).limit(1);
-      return result[0];
-    } catch (error) {
-      console.error("Error getting message by id:", error);
-      return undefined;
-    }
+    return this.messages.get(id);
   }
 
   async getActiveTheme(): Promise<ChatTheme | undefined> {
@@ -284,41 +253,26 @@ export class PostgresStorage implements IStorage {
   }
 
   async getUsersCount(): Promise<number> {
-    try {
-      // Count active registered users from database
-      const allUsers = await db.select().from(users);
-      
-      let activeRegisteredUsers = 0;
-      allUsers.forEach(user => {
-        if (this.isUserActive(user.id)) {
-          activeRegisteredUsers++;
-        }
-      });
-
-      return activeRegisteredUsers;
-    } catch (error) {
-      console.error("Error getting users count:", error);
-      return 0;
+    let activeRegisteredUsers = 0;
+    for (const user of Array.from(this.users.values())) {
+      if (this.isUserActive(user.id)) {
+        activeRegisteredUsers++;
+      }
     }
+    return activeRegisteredUsers;
   }
 
   async getOnlineUsers(): Promise<User[]> {
-    try {
-      const allUsers = await db.select().from(users);
+    const allUsers = Array.from(this.users.values());
+    
+    return allUsers.map(user => {
+      const lastActive = this.userActivity.get(user.id);
       
-      return allUsers.map(user => {
-        const lastActive = this.userActivity.get(user.id);
-        const { password, ...userWithoutPassword } = user;
-        
-        return {
-          ...userWithoutPassword,
-          lastActivity: lastActive || null
-        };
-      });
-    } catch (error) {
-      console.error("Error getting online users:", error);
-      return [];
-    }
+      return {
+        ...user,
+        lastActivity: lastActive || null
+      };
+    });
   }
 
   private isUserActive(userId: number): boolean {
@@ -330,25 +284,17 @@ export class PostgresStorage implements IStorage {
   async updateUserActivity(userId: number): Promise<void> {
     this.userActivity.set(userId, new Date());
     
-    // Also update in database
-    try {
-      await db.update(users)
-        .set({ lastActivity: new Date() })
-        .where(eq(users.id, userId));
-    } catch (error) {
-      console.error("Error updating user activity in database:", error);
+    // Also update user record
+    const user = this.users.get(userId);
+    if (user) {
+      user.lastActivity = new Date();
+      this.users.set(userId, user);
     }
   }
 
   async getTotalUsersCount(): Promise<number> {
-    try {
-      const allUsers = await db.select().from(users);
-      return allUsers.length;
-    } catch (error) {
-      console.error("Error getting total users count:", error);
-      return 0;
-    }
+    return this.users.size;
   }
 }
 
-export const storage = new PostgresStorage();
+export const storage = new MemoryStorage();
