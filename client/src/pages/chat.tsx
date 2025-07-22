@@ -51,7 +51,7 @@ export default function Chat({ currentUser, onSignOut }: ChatProps) {
   // Update message mutation
   const updateMessageMutation = useMutation({
     mutationFn: async ({ id, content }: { id: number; content: string }) => {
-      const response = await apiRequest("PUT", `/api/messages/${id}`, {
+      const response = await apiRequest("PATCH", `/api/messages/${id}`, {
         content,
         userId: currentUser.id,
       });

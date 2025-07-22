@@ -149,21 +149,39 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId, ...updateData } = req.body;
       
       if (!userId) {
+        console.log("Update request without userId for message:", messageId);
         return res.status(400).json({ message: "User ID is required" });
       }
       
+      // Get the message first to check ownership
+      const message = await storage.getMessageById(messageId);
+      if (!message) {
+        console.log("Message not found for update:", messageId);
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Check if the user owns this message
+      if (message.userId !== userId) {
+        console.log(`Unauthorized update attempt: User ${userId} tried to update message ${messageId} owned by user ${message.userId}`);
+        return res.status(403).json({ message: "You can only edit your own messages" });
+      }
+      
       const validatedData = updateMessageSchema.parse(updateData);
+      console.log(`User ${userId} updating their message ${messageId}`);
       const updatedMessage = await storage.updateMessage(messageId, userId, validatedData);
       
       if (!updatedMessage) {
-        return res.status(404).json({ message: "Message not found or unauthorized" });
+        console.log("Failed to update message in storage:", messageId);
+        return res.status(500).json({ message: "Failed to update message in storage" });
       }
       
+      console.log(`Message ${messageId} successfully updated by user ${userId}`);
       res.json(updatedMessage);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({ message: "Validation error", errors: error.errors });
       } else {
+        console.error("Error updating message:", error);
         res.status(500).json({ message: "Failed to update message" });
       }
     }
@@ -176,17 +194,35 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const { userId } = req.body;
       
       if (!userId) {
+        console.log("Delete request without userId for message:", messageId);
         return res.status(400).json({ message: "User ID is required" });
       }
       
+      // Get the message first to check ownership
+      const message = await storage.getMessageById(messageId);
+      if (!message) {
+        console.log("Message not found for deletion:", messageId);
+        return res.status(404).json({ message: "Message not found" });
+      }
+      
+      // Check if the user owns this message
+      if (message.userId !== userId) {
+        console.log(`Unauthorized delete attempt: User ${userId} tried to delete message ${messageId} owned by user ${message.userId}`);
+        return res.status(403).json({ message: "You can only delete your own messages" });
+      }
+      
+      console.log(`User ${userId} deleting their message ${messageId}`);
       const deleted = await storage.deleteMessage(messageId, userId);
       
       if (!deleted) {
-        return res.status(404).json({ message: "Message not found or unauthorized" });
+        console.log("Failed to delete message from storage:", messageId);
+        return res.status(500).json({ message: "Failed to delete message from storage" });
       }
       
+      console.log(`Message ${messageId} successfully deleted by user ${userId}`);
       res.status(204).send();
     } catch (error) {
+      console.error("Error deleting message:", error);
       res.status(500).json({ message: "Failed to delete message" });
     }
   });
