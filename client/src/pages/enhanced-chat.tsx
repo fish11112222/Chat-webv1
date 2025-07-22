@@ -281,6 +281,34 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
   };
 
   const deleteMessage = (id: number) => {
+    const messageToDelete = messages.find(msg => msg.id === id);
+    console.log("Delete attempt details:", {
+      messageId: id,
+      messageOwnerId: messageToDelete?.userId,
+      currentUserId: currentUser.id,
+      currentUserName: `${currentUser.firstName} ${currentUser.lastName}`,
+      messageOwnerName: messageToDelete?.username,
+      canDelete: messageToDelete?.userId === currentUser.id
+    });
+    
+    if (!messageToDelete) {
+      toast({
+        title: "ข้อผิดพลาด",
+        description: "ไม่พบข้อความที่ต้องการลบ",
+        variant: "destructive",
+      });
+      return;
+    }
+    
+    if (messageToDelete.userId !== currentUser.id) {
+      toast({
+        title: "ไม่อนุญาต",
+        description: "คุณสามารถลบได้เฉพาะข้อความของตัวเองเท่านั้น",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     if (confirm("คุณแน่ใจหรือไม่ว่าต้องการลบข้อความนี้?")) {
       console.log("Attempting to delete message:", id);
       deleteMessageMutation.mutate(id);
@@ -312,7 +340,10 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                 >
                   💬
                 </div>
-                <CardTitle className="text-lg sm:text-xl">Chat Room</CardTitle>
+                <div>
+                  <CardTitle className="text-lg sm:text-xl">Chat Room</CardTitle>
+                  <p className="text-xs text-gray-500">ล็อกอินเป็น: {currentUser.firstName} {currentUser.lastName} (ID: {currentUser.id})</p>
+                </div>
               </div>
 
               {/* User Display */}
@@ -347,9 +378,19 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                 </span>
               </div>
 
-              <Button variant="outline" size="sm" onClick={onSignOut} className="flex-shrink-0">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  if (confirm("คุณแน่ใจหรือไม่ว่าต้องการออกจากระบบ?")) {
+                    localStorage.clear(); // Clear all localStorage data
+                    onSignOut();
+                  }
+                }}
+                className="flex-shrink-0 text-red-600 hover:text-red-700 hover:bg-red-50 border-red-200"
+              >
                 <LogOut className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="ml-1 hidden md:inline">Sign Out</span>
+                <span className="ml-1 hidden md:inline">ออกจากระบบ</span>
               </Button>
             </div>
           </div>
@@ -379,6 +420,7 @@ export default function EnhancedChatPage({ currentUser, onSignOut }: EnhancedCha
                 <div className="space-y-4">
                   {messages.map((msg) => {
                     const isOwnMessage = msg.userId === currentUser.id;
+
                     return (
                       <div
                         key={msg.id}
