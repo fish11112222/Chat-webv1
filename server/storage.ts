@@ -1,4 +1,7 @@
+
 import { users, messages, chatThemes, chatSettings, type User, type SignUpData, type SignInData, type Message, type InsertMessage, type UpdateMessage, type ChatTheme, type ChatSettings } from "@shared/schema";
+import { db } from "./db";
+import { eq, desc } from "drizzle-orm";
 
 export interface IStorage {
   // User operations
@@ -25,26 +28,16 @@ export interface IStorage {
   getTotalUsersCount(): Promise<number>;
 }
 
-export class MemStorage implements IStorage {
-  private users: Map<number, User>;
-  private messages: Map<number, Message>;
-  private currentUserId: number;
-  private currentMessageId: number;
+export class PostgresStorage implements IStorage {
+  private userActivity: Map<number, Date>;
   private currentTheme: ChatTheme;
   private themes: Map<number, ChatTheme>;
-  private userActivity: Map<number, Date>;
 
   constructor() {
-    this.users = new Map();
-    this.messages = new Map();
-    this.currentUserId = 1;
-    this.currentMessageId = 1;
-
-    // Initialize default themes
+    this.userActivity = new Map();
     this.themes = new Map();
     this.initializeThemes();
     this.currentTheme = this.themes.get(1)!; // Default to first theme
-    this.userActivity = new Map();
   }
 
   private initializeThemes() {
@@ -129,104 +122,152 @@ export class MemStorage implements IStorage {
   }
 
   async getUser(id: number): Promise<User | undefined> {
-    return this.users.get(id);
+    try {
+      const result = await db.select().from(users).where(eq(users.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error("Error getting user:", error);
+      return undefined;
+    }
   }
 
   async getUserByEmail(email: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.email === email,
-    );
+    try {
+      const result = await db.select().from(users).where(eq(users.email, email)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error("Error getting user by email:", error);
+      return undefined;
+    }
   }
 
   async getUserByUsername(username: string): Promise<User | undefined> {
-    return Array.from(this.users.values()).find(
-      (user) => user.username === username,
-    );
+    try {
+      const result = await db.select().from(users).where(eq(users.username, username)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error("Error getting user by username:", error);
+      return undefined;
+    }
+  }
+
+  async getAllUsers(): Promise<User[]> {
+    try {
+      const allUsers = await db.select().from(users);
+      return allUsers.map(user => {
+        const { password, ...userWithoutPassword } = user;
+        return userWithoutPassword as User;
+      });
+    } catch (error) {
+      console.error("Error getting all users:", error);
+      return [];
+    }
   }
 
   async createUser(signUpData: SignUpData): Promise<User> {
-    const id = this.currentUserId++;
-    const now = new Date();
-    const user: User = { 
-      ...signUpData, 
-      id, 
-      avatar: null,
-      lastActivity: null,
-      createdAt: now
-    };
-    this.users.set(id, user);
-    return user;
+    try {
+      const result = await db.insert(users).values({
+        ...signUpData,
+        avatar: null,
+        lastActivity: null,
+      }).returning();
+      
+      console.log("User created successfully:", result[0]);
+      return result[0];
+    } catch (error) {
+      console.error("Error creating user:", error);
+      throw error;
+    }
   }
 
   async authenticateUser(credentials: SignInData): Promise<User | null> {
-    const user = await this.getUserByEmail(credentials.email);
-    if (!user) {
-      console.log("User not found:", credentials.email);
+    try {
+      const user = await this.getUserByEmail(credentials.email);
+      if (!user) {
+        console.log("User not found:", credentials.email);
+        return null;
+      }
+
+      // For development, we're using plain text password comparison
+      // In production, you should use proper password hashing
+      if (user.password !== credentials.password) {
+        console.log("Password mismatch for user:", credentials.email);
+        return null;
+      }
+
+      console.log("Authentication successful for user:", user.email);
+      return user;
+    } catch (error) {
+      console.error("Error authenticating user:", error);
       return null;
     }
-
-    // For development, we're using plain text password comparison
-    // In production, you should use proper password hashing
-    if (user.password !== credentials.password) {
-      console.log("Password mismatch for user:", credentials.email);
-      console.log("Stored password:", user.password);
-      console.log("Provided password:", credentials.password);
-      return null;
-    }
-
-    console.log("Authentication successful for user:", user.email);
-    return user;
   }
 
   async getMessages(): Promise<Message[]> {
-    return Array.from(this.messages.values()).sort(
-      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()
-    );
+    try {
+      const result = await db.select().from(messages).orderBy(messages.createdAt);
+      return result;
+    } catch (error) {
+      console.error("Error getting messages:", error);
+      return [];
+    }
   }
 
   async createMessage(insertMessage: InsertMessage): Promise<Message> {
-    const id = this.currentMessageId++;
-    const now = new Date();
-    const message: Message = {
-      ...insertMessage,
-      id,
-      createdAt: now,
-      updatedAt: null,
-      attachmentUrl: insertMessage.attachmentUrl || null,
-      attachmentType: insertMessage.attachmentType || null,
-      attachmentName: insertMessage.attachmentName || null,
-    };
-    this.messages.set(id, message);
-    return message;
+    try {
+      const result = await db.insert(messages).values({
+        ...insertMessage,
+        attachmentUrl: insertMessage.attachmentUrl || null,
+        attachmentType: insertMessage.attachmentType || null,
+        attachmentName: insertMessage.attachmentName || null,
+        updatedAt: null,
+      }).returning();
+      
+      return result[0];
+    } catch (error) {
+      console.error("Error creating message:", error);
+      throw error;
+    }
   }
 
   async updateMessage(id: number, userId: number, updates: UpdateMessage): Promise<Message | null> {
-    const message = this.messages.get(id);
-    if (!message || message.userId !== userId) {
+    try {
+      const result = await db.update(messages)
+        .set({ 
+          ...updates, 
+          updatedAt: new Date() 
+        })
+        .where(eq(messages.id, id) && eq(messages.userId, userId))
+        .returning();
+      
+      return result[0] || null;
+    } catch (error) {
+      console.error("Error updating message:", error);
       return null;
     }
-
-    const updatedMessage: Message = {
-      ...message,
-      ...updates,
-      updatedAt: new Date(),
-    };
-
-    this.messages.set(id, updatedMessage);
-    return updatedMessage;
   }
 
   async deleteMessage(id: number, userId: number): Promise<boolean> {
-    const message = this.messages.get(id);
-    if (!message || message.userId !== userId) {
+    try {
+      const result = await db.delete(messages)
+        .where(eq(messages.id, id) && eq(messages.userId, userId))
+        .returning();
+      
+      return result.length > 0;
+    } catch (error) {
+      console.error("Error deleting message:", error);
       return false;
     }
-
-    return this.messages.delete(id);
   }
 
   async getMessageById(id: number): Promise<Message | undefined> {
-    return this.messages.get(id);
+    try {
+      const result = await db.select().from(messages).where(eq(messages.id, id)).limit(1);
+      return result[0];
+    } catch (error) {
+      console.error("Error getting message by id:", error);
+      return undefined;
+    }
   }
 
   async getActiveTheme(): Promise<ChatTheme | undefined> {
@@ -243,36 +284,41 @@ export class MemStorage implements IStorage {
   }
 
   async getUsersCount(): Promise<number> {
-    // Count active registered users
-    let activeRegisteredUsers = 0;
+    try {
+      // Count active registered users from database
+      const allUsers = await db.select().from(users);
+      
+      let activeRegisteredUsers = 0;
+      allUsers.forEach(user => {
+        if (this.isUserActive(user.id)) {
+          activeRegisteredUsers++;
+        }
+      });
 
-    Array.from(this.users.entries()).forEach(([userId, user]) => {
-      if (this.isUserActive(userId)) {
-        activeRegisteredUsers++;
-      }
-    });
-
-    return activeRegisteredUsers;
+      return activeRegisteredUsers;
+    } catch (error) {
+      console.error("Error getting users count:", error);
+      return 0;
+    }
   }
 
   async getOnlineUsers(): Promise<User[]> {
-    const allUsers: User[] = [];
-
-    // Return all registered users with their activity status
-    Array.from(this.users.entries()).forEach(([userId, user]) => {
-      const lastActive = this.userActivity.get(userId);
-      const { password, ...userWithoutPassword } = user;
+    try {
+      const allUsers = await db.select().from(users);
       
-      // Add lastActivity field to user object, but keep it as a proper User type
-      const userWithActivity = {
-        ...userWithoutPassword,
-        lastActivity: lastActive || null
-      };
-      
-      allUsers.push(userWithActivity);
-    });
-
-    return allUsers;
+      return allUsers.map(user => {
+        const lastActive = this.userActivity.get(user.id);
+        const { password, ...userWithoutPassword } = user;
+        
+        return {
+          ...userWithoutPassword,
+          lastActivity: lastActive || null
+        };
+      });
+    } catch (error) {
+      console.error("Error getting online users:", error);
+      return [];
+    }
   }
 
   private isUserActive(userId: number): boolean {
@@ -283,21 +329,26 @@ export class MemStorage implements IStorage {
 
   async updateUserActivity(userId: number): Promise<void> {
     this.userActivity.set(userId, new Date());
+    
+    // Also update in database
+    try {
+      await db.update(users)
+        .set({ lastActivity: new Date() })
+        .where(eq(users.id, userId));
+    } catch (error) {
+      console.error("Error updating user activity in database:", error);
+    }
   }
 
   async getTotalUsersCount(): Promise<number> {
-    // Return total number of registered users regardless of activity status
-    return this.users.size;
-  }
-
-  async getAllUsers(): Promise<User[]> {
-    const allUsers: User[] = [];
-    Array.from(this.users.values()).forEach((user) => {
-      const { password, ...userWithoutPassword } = user;
-      allUsers.push(userWithoutPassword as User);
-    });
-    return allUsers;
+    try {
+      const allUsers = await db.select().from(users);
+      return allUsers.length;
+    } catch (error) {
+      console.error("Error getting total users count:", error);
+      return 0;
+    }
   }
 }
 
-export const storage = new MemStorage();
+export const storage = new PostgresStorage();
